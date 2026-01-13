@@ -5,15 +5,41 @@ BUILD_DIR := build
 ifeq ($(OS),Windows_NT)
     CC      := clang
     LD      := ld.lld
+    PROG_SUFFIX := .exe
 else ifneq ($(shell uname),Darwin)
     CC      := clang
     LD      := ld.lld
+    PROG_SUFFIX := 
 else
     CC      ?= clang
     LD      ?= ld.lld
+    PROG_SUFFIX := 
 endif
 
-TARGET  := $(BUILD_DIR)/mod.elf
+ZIP       := zip
+MODTOOL   := RecompModTool
+MODMERGER := RecompModMerger
+
+ifeq ($(wildcard $(MODTOOL)$(PROG_SUFFIX)),)
+$(error "Please place the RecompModTool executable in the root of this repo.")
+endif
+
+ifeq ($(wildcard $(MODMERGER)$(PROG_SUFFIX)),)
+$(error "Please place the RecompModMerger executable in the root of this repo.")
+endif
+
+ifeq ($(wildcard mod_syms.bin),)
+$(error "Please place the converted mod_syms.bin file from the romhack tool in the root of this repo.")
+endif
+
+ifeq ($(wildcard mod_binary.bin),)
+$(error "Please place the converted mod_binary.bin file from the romhack tool in the root of this repo.")
+endif
+
+TARGET     := $(BUILD_DIR)/mod.elf
+PRELIM_NRM := $(BUILD_DIR)/jiggiesoftime_prelim.nrm
+NRM        := $(BUILD_DIR)/jiggiesoftime.nrm
+NRM_ZIP    := $(BUILD_DIR)/jiggiesoftime.zip
 
 LDSCRIPT := mod.ld
 ARCHFLAGS := -target mips -mips2 -mabi=32 -O2 -G0 -mno-abicalls -mno-odd-spreg -mno-check-zero-division \
@@ -32,11 +58,40 @@ C_SRCS := $(call rwildcard,src,*.c)
 C_OBJS := $(addprefix $(BUILD_DIR)/, $(C_SRCS:.c=.o))
 C_DEPS := $(addprefix $(BUILD_DIR)/, $(C_SRCS:.c=.d))
 
+COMBINED_DIR := $(BUILD_DIR)/combined
+COMBINED_BIN  := $(COMBINED_DIR)/mod_binary.bin
+COMBINED_SYMS := $(COMBINED_DIR)/mod_syms.bin
+
 ALL_OBJS := $(C_OBJS)
 ALL_DEPS := $(C_DEPS)
-BUILD_DIRS := $(call getdirs,$(ALL_OBJS))
+BUILD_DIRS := $(call getdirs,$(ALL_OBJS)) $(COMBINED_DIR)
 
-all: $(TARGET)
+NRM_INPUTS := $(BUILD_DIR)/combined/mod_binary.bin $(BUILD_DIR)/combined/mod_syms.bin $(BUILD_DIR)/mod.json patch.bps
+NRM_FILES  := $(NRM_INPUTS)
+
+ifeq ($(OS),Windows_NT)
+space := $(subst ,, )
+comma:= ,
+NRM_FILES  := $(subst $(space),$(comma),$(subst /,\,$(NRM_FILES)))
+endif
+
+all: $(NRM)
+
+$(NRM): $(NRM_ZIP)
+ifeq ($(OS),Windows_NT)
+	copy /Y $(subst /,\,$<) $(subst /,\,$@)
+else
+	cp $< $@
+endif
+
+$(NRM_ZIP): $(COMBINED_SYMS)
+	powershell -command Compress-Archive -Force -CompressionLevel Optimal -DestinationPath $@ -Path $(NRM_FILES)
+
+$(COMBINED_SYMS): $(PRELIM_NRM)
+	$(MODMERGER) BanjoRecompSyms/bk.us.rev0.syms.toml $(BUILD_DIR)/mod_syms.bin $(BUILD_DIR)/mod_binary.bin mod_syms.bin mod_binary.bin $(COMBINED_SYMS) $(COMBINED_BIN)
+
+$(PRELIM_NRM): $(TARGET)
+	$(MODTOOL) mod.toml $(BUILD_DIR)
 
 $(TARGET): $(ALL_OBJS) $(LDSCRIPT) | $(BUILD_DIR)
 	$(LD) $(ALL_OBJS) $(LDFLAGS) -o $@
