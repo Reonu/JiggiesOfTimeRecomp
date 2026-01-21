@@ -15,11 +15,11 @@ version = "1.0.0"
 display_name = "Jiggies of Time"
 
 # The description that will show up when this mod is displayed in the mod menu. This should be human readable.
-description =  "TODO Description."
+description =  "A full mod crossover between BK and Ocarina Of Time. Explore OoT's world reimagined as a BK game; with all new areas, and packed with easter eggs."
 
 # A short description that will show up in this mod's entry in the mod list. This should be human readable and kept short
 # to prevent it from being cut off due to the limited space.
-short_description = "TODO Short Description."
+short_description = "Explore the land of Hyrule with Banjo & Kazooie!"
 
 # Authors of this mod.
 authors = [ "Kurko Mods" ]
