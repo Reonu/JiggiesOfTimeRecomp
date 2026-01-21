@@ -66,7 +66,7 @@ ALL_OBJS := $(C_OBJS)
 ALL_DEPS := $(C_DEPS)
 BUILD_DIRS := $(call getdirs,$(ALL_OBJS)) $(COMBINED_DIR)
 
-NRM_INPUTS := $(BUILD_DIR)/combined/mod_binary.bin $(BUILD_DIR)/combined/mod_syms.bin $(BUILD_DIR)/mod.json patch.bps
+NRM_INPUTS := $(BUILD_DIR)/combined/mod_binary.bin $(BUILD_DIR)/combined/mod_syms.bin $(BUILD_DIR)/mod.json patch.bps thumb.dds
 NRM_FILES  := $(NRM_INPUTS)
 
 ifeq ($(OS),Windows_NT)

@@ -66,4 +66,6 @@ func_reference_syms_file = "BanjoRecompSyms/bk.us.rev0.syms.toml"
 data_reference_syms_files = [ "BanjoRecompSyms/bk.us.rev0.datasyms.toml" ]
 
 # Additional files to include in the mod.
-additional_files = [ ]
+additional_files = [
+    "thumb.dds"
+]
