@@ -1,4 +1,5 @@
 BUILD_DIR := build
+NAME := bk_jiggies_of_time
 
 # Allow the user to specify the compiler and linker on macOS
 # as Apple Clang does not support MIPS architecture
@@ -16,30 +17,42 @@ else
     PROG_SUFFIX := 
 endif
 
-ZIP       := zip
-MODTOOL   := RecompModTool
-MODMERGER := RecompModMerger
+ZIP         := zip
+MODTOOL     := RecompModTool
+MODMERGER   := RecompModMerger
+ROMHACKTOOL := BKRecompRomhackTool
+BASEROM     := baserom.z64
+ROMHACK_ROM := $(NAME).z64
+BPS         := patch.bps
 
 ifeq ($(wildcard $(MODTOOL)$(PROG_SUFFIX)),)
-$(error "Please place the RecompModTool executable in the root of this repo.")
+$(error "Please place the RecompModTool executable in the root of this repo. Refer to the readme for more details.")
 endif
 
 ifeq ($(wildcard $(MODMERGER)$(PROG_SUFFIX)),)
-$(error "Please place the RecompModMerger executable in the root of this repo.")
+$(error "Please place the RecompModMerger executable in the root of this repo. Refer to the readme for more details.")
 endif
 
-ifeq ($(wildcard mod_syms.bin),)
-$(error "Please place the converted mod_syms.bin file from the romhack tool in the root of this repo.")
+ifeq ($(wildcard $(ROMHACKTOOL)$(PROG_SUFFIX)),)
+$(error "Please place the BKRecompRomhackTool executable in the root of this repo. Refer to the readme for more details.")
 endif
 
-ifeq ($(wildcard mod_binary.bin),)
-$(error "Please place the converted mod_binary.bin file from the romhack tool in the root of this repo.")
+ifeq ($(wildcard $(BASEROM)),)
+$(error "Please place $(BASEROM) in the root of this repo. Refer to the readme for more details.")
+endif
+
+ifeq ($(wildcard $(ROMHACK_ROM)),)
+$(error "Please place $(ROMHACK_ROM) in the root of this repo. Refer to the readme for more details.")
+endif
+
+ifeq ($(wildcard $(BPS)),)
+$(error "Please place $(BPS) in the root of this repo. Refer to the readme for more details.")
 endif
 
 TARGET     := $(BUILD_DIR)/mod.elf
-PRELIM_NRM := $(BUILD_DIR)/jiggiesoftime_prelim.nrm
-NRM        := $(BUILD_DIR)/jiggiesoftime.nrm
-NRM_ZIP    := $(BUILD_DIR)/jiggiesoftime.zip
+PRELIM_NRM := $(BUILD_DIR)/$(NAME)_prelim.nrm
+NRM        := $(BUILD_DIR)/$(NAME).nrm
+NRM_ZIP    := $(BUILD_DIR)/$(NAME).zip
 
 LDSCRIPT := mod.ld
 ARCHFLAGS := -target mips -mips2 -mabi=32 -O2 -G0 -mno-abicalls -mno-odd-spreg -mno-check-zero-division \
@@ -58,15 +71,19 @@ C_SRCS := $(call rwildcard,src,*.c)
 C_OBJS := $(addprefix $(BUILD_DIR)/, $(C_SRCS:.c=.o))
 C_DEPS := $(addprefix $(BUILD_DIR)/, $(C_SRCS:.c=.d))
 
+ROMHACK_DIR := $(BUILD_DIR)/romhack
+ROMHACK_BIN := $(ROMHACK_DIR)/mod_binary.bin
+ROMHACK_SYMS := $(ROMHACK_DIR)/mod_syms.bin
+
 COMBINED_DIR := $(BUILD_DIR)/combined
 COMBINED_BIN  := $(COMBINED_DIR)/mod_binary.bin
 COMBINED_SYMS := $(COMBINED_DIR)/mod_syms.bin
 
 ALL_OBJS := $(C_OBJS)
 ALL_DEPS := $(C_DEPS)
-BUILD_DIRS := $(call getdirs,$(ALL_OBJS)) $(COMBINED_DIR)
+BUILD_DIRS := $(call getdirs,$(ALL_OBJS)) $(COMBINED_DIR) $(ROMHACK_DIR)
 
-NRM_INPUTS := $(BUILD_DIR)/combined/mod_binary.bin $(BUILD_DIR)/combined/mod_syms.bin $(BUILD_DIR)/mod.json patch.bps thumb.dds
+NRM_INPUTS := $(BUILD_DIR)/combined/mod_binary.bin $(BUILD_DIR)/combined/mod_syms.bin $(BUILD_DIR)/mod.json $(BPS) thumb.dds
 NRM_FILES  := $(NRM_INPUTS)
 
 ifeq ($(OS),Windows_NT)
@@ -87,8 +104,11 @@ endif
 $(NRM_ZIP): $(COMBINED_SYMS)
 	powershell -command Compress-Archive -Force -CompressionLevel Optimal -DestinationPath $@ -Path $(NRM_FILES)
 
-$(COMBINED_SYMS): $(PRELIM_NRM)
-	$(MODMERGER) BanjoRecompSyms/bk.us.rev0.syms.toml $(BUILD_DIR)/mod_syms.bin $(BUILD_DIR)/mod_binary.bin mod_syms.bin mod_binary.bin $(COMBINED_SYMS) $(COMBINED_BIN)
+$(ROMHACK_SYMS): $(ROMHACK_ROM) | $(ROMHACK_DIR)
+	$(ROMHACKTOOL) $(BASEROM) $(ROMHACK_ROM) BanjoRecompSyms/bk.us.rev0.syms.toml $(NAME)_syms.toml $(ROMHACK_SYMS) $(ROMHACK_BIN)
+
+$(COMBINED_SYMS): $(ROMHACK_SYMS) $(PRELIM_NRM)
+	$(MODMERGER) BanjoRecompSyms/bk.us.rev0.syms.toml $(BUILD_DIR)/mod_syms.bin $(BUILD_DIR)/mod_binary.bin $(ROMHACK_SYMS) $(ROMHACK_BIN) $(COMBINED_SYMS) $(COMBINED_BIN)
 
 $(PRELIM_NRM): $(TARGET)
 	$(MODTOOL) mod.toml $(BUILD_DIR)
