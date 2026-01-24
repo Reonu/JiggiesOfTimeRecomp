@@ -1,6 +1,6 @@
 # Jiggies of Time Recomp
 
-This is the new code written for the recomp version of BK The Jiggies of Time. This repo expects mod_syms.bin and mod_binary.bin from the romhack tool to be placed in the root folder before building.
+This repository contains the new code written for the Banjo: Recompiled version of the Banjo-Kazooie mod **BK The Jiggies of Time** by Kurko Mods.
 
 ### Build steps
 
