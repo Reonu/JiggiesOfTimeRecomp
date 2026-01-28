@@ -9,6 +9,7 @@
 *.exp
 *.bps
 *.z64
+*.nrm
 ./funcs.h
 patches.map
 build/
